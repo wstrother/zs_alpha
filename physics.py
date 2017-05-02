@@ -39,6 +39,26 @@ class CollisionManager:
                     region.handle_sprite_collision(sprite, collision)
 
     @staticmethod
+    def group_perm_collision_system(group, test, handle):
+        tested = []
+        for item in group:
+            tested.append(item)
+
+            for other in [o for o in group if o not in tested]:
+                collision = test(item, other)
+
+                if collision:
+                    handle(item, other, collision)
+
+    @staticmethod
+    def sprite_sprite_collision_system(group):
+        test = PhysicsInterface.test_sprite_collision
+        handle = PhysicsInterface.handle_sprite_collision
+
+        CollisionManager.group_perm_collision_system(
+            group, test, handle)
+
+    @staticmethod
     def get_from_dict(d):
         cm = CollisionManager(d["name"])
 
@@ -106,6 +126,7 @@ class PhysicsInterface:
         entity.set_mass = self.set_mass
         entity.set_elasticity = self.set_elasticity
         entity.apply_force = self.apply_force
+        entity.scale_movement_in_direction = self.scale_movement_in_direction
 
     def get_instantaneous_velocity(self):
         entity = self.entity
@@ -129,6 +150,9 @@ class PhysicsInterface:
     def set_friction(self, value):
         self.friction = value
 
+    def scale_movement_in_direction(self, angle, value):
+        self.velocity.scale_in_direction(angle, value)
+
     def apply_force(self, i, j):
         self.forces.append(
             Vector("acceleration force", i, j)
@@ -148,10 +172,10 @@ class PhysicsInterface:
         self.velocity.j_hat += j
 
     def apply_velocity(self):
-        entity = self.entity
-        entity.move(
-            self.velocity.get_value()
-        )
+        if self.mass:
+            movement = self.velocity.get_copy(
+                scale=(1 / self.mass)).get_value()
+            self.entity.move(movement)
 
     def update(self):
         self.last_position = self.entity.position
@@ -162,7 +186,8 @@ class PhysicsInterface:
 
         # gravity
         if self.gravity:
-            self.apply_force(0, self.gravity)
+            g = self.gravity * self.mass
+            self.apply_force(0, g)
 
         # movement
         self.apply_velocity()
@@ -225,8 +250,8 @@ class PhysicsInterface:
         )
 
         normal = wall.get_normal()
-        velocity = sprite.physics_interface.velocity
-        velocity.scale_in_direction(normal.get_angle(), 0)
+        sprite.scale_movement_in_direction(
+            normal.get_angle(), 0)
 
     @staticmethod
     def bounce_wall_collision(wall, sprite, point):
@@ -239,6 +264,41 @@ class PhysicsInterface:
         )
 
         normal = wall.get_normal()
-        velocity = sprite.physics_interface.velocity
-        velocity.scale_in_direction(normal.get_angle(), -1)
+        sprite.scale_movement_in_direction(
+            normal.get_angle(), -1)
 
+    @staticmethod
+    def test_sprite_collision(sprite, other):
+        r1 = sprite.get_collision_rect()
+        r2 = other.get_collision_rect()
+
+        return r1.get_rect_collision(r2)
+
+    @staticmethod
+    def handle_sprite_collision(sprite, other, collision):
+        if collision:
+            def check_orientation(s):
+                x, y = s.get_collision_rect().center
+                cx, cy = collision
+                heading = Vector("heading", cx - x, cy - y)
+
+                return s.get_velocity().check_orientation(heading)
+
+            def get_adjustment(o):
+                x, y = o.get_collision_rect().center
+                cx, cy = collision
+                v = Vector("collision adjustment", cx - x, cy - y)
+
+                return v
+
+            def do_adjustment(s, o):
+                v = get_adjustment(o)
+
+                if check_orientation(s):
+                    s.scale_movement_in_direction(v.get_angle(), 0)
+
+                v.scale(1 - s.physics_interface.elasticity)
+                s.apply_force(*v.get_value())
+
+            do_adjustment(sprite, other)
+            do_adjustment(other, sprite)

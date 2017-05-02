@@ -145,6 +145,19 @@ class Rect:
 
         self.position = x, y
 
+    def get_rect_collision(self, other):
+        try:
+            collision = self.clip(other.pygame_rect)
+
+            if not (collision.width or collision.height):
+                return False
+
+            else:
+                return collision.center
+
+        except ValueError:
+            return False
+
 
 class Vector:
     def __init__(self, name, i_hat, j_hat):

@@ -62,8 +62,8 @@ class AnimationSprite(Sprite):
         rect = self.get_collision_rect()
 
         return [
-            rect.topleft, rect.topright,
-            rect.bottomleft, rect.bottomright,
+            rect.midtop, rect.midright,
+            rect.midleft, rect.midbottom,
             rect.center
         ]
 
