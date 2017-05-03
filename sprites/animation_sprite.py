@@ -34,6 +34,8 @@ class AnimationSprite(Sprite):
         self.physics_interface = PhysicsInterface(self)
         self.physics_interface.set_interface()
 
+        self.hitbox_manager = HitboxManager(self)
+
     def get_collision_skeleton(self):
         rect = self.get_collision_rect()
 
@@ -115,7 +117,6 @@ class AnimationSprite(Sprite):
         self.set_graphics(AnimationGraphics, sprite_sheet, scale)
 
         for layer in image_layers:
-            print(layer)
             image, x, y = layer
             position = x, y
             self.graphics.add_image_layer(image, position)
@@ -260,3 +261,57 @@ class AnimationSprite(Sprite):
     def on_spawn(self):
         self.animation_machine.set_state("idle")
 
+
+class HitboxManager:
+    def __init__(self, entity):
+        self.entity = entity
+
+    def get_hitbox_collisions(self, other):
+        hitboxes = self.entity.animation_machine.get_hitboxes()
+        hurtboxes = other.animation_machine.get_hitboxes(key="hurtbox")
+        rects = [other.get_collision_rect()] + hurtboxes
+
+        collisions = []
+
+        for h in hitboxes:
+            if "size" in h:
+                r = Rect(h["size"], h["position"])
+
+                collision = any(
+                    [r.get_rect_collision(o) for o in rects]
+                )
+
+                if collision:
+                    collisions.append(h)
+
+            if "radius" in h:
+                r = other.get_collision_rect()
+                radius = h["radius"]
+                position = h["position"]
+
+                collision = any(
+                    [r.get_circle_collision(radius, position) for r in rects]
+                )
+
+                if collision:
+                    collisions.append(h)
+
+        return collisions
+
+    def handle_hitboxes(self, hitboxes):
+        print("\n---")
+        for h in hitboxes:
+            print(h)
+
+        self.entity.animation_machine.set_state("hurt")
+
+    @staticmethod
+    def do_hitbox_collision(sprite, other):
+        s_collisions = sprite.hitbox_manager.get_hitbox_collisions(other)
+        o_collisions = other.hitbox_manager.get_hitbox_collisions(sprite)
+
+        if s_collisions:
+            other.hitbox_manager.handle_hitboxes(s_collisions)
+
+        if o_collisions:
+            sprite.hitbox_manager.handle_hitboxes(o_collisions)

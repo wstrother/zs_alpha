@@ -1,6 +1,15 @@
 import pygame
-from math import pi, cos, sin, atan2
+from math import pi, cos, sin, atan2, sqrt
 from classes import MessageLogger
+
+def get_distance(p1, p2):
+    x1, y1 = p1
+    x2, y2 = p2
+
+    dx = abs(x1 - x2)
+    dy = abs(y1 - y2)
+
+    return sqrt(dx**2 + dy**2)
 
 
 class Rect:
@@ -158,6 +167,21 @@ class Rect:
         except ValueError:
             return False
 
+    def get_circle_collision(self, radius, position):
+        points = [
+            self.center,
+            self.topleft,
+            self.topright,
+            self.bottomleft,
+            self.bottomright
+        ]
+
+        for point in points:
+            d = get_distance(position, point)
+
+            if d <= radius:
+                return point
+
 
 class Vector:
     def __init__(self, name, i_hat, j_hat):
@@ -177,6 +201,11 @@ class Vector:
 
     def get_value(self):
         return self.i_hat, self.j_hat
+
+    def get_magnitude(self):
+        i, j = self.get_value()
+
+        return sqrt(i**2 + j**2)
 
     def get_draw_point(self, origin=(0, 0), buffer=0):
         ox, oy = origin

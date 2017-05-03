@@ -178,7 +178,7 @@ class AnimationMachine(StateMachine):
 
         return new
 
-    def get_hitboxes(self):
+    def get_hitboxes(self, key=False):
         frame = self.get_animation_frame()
         name = self.get_animation_state()
         scale = self.entity.graphics.scale
@@ -189,11 +189,16 @@ class AnimationMachine(StateMachine):
         if name in self.hitboxes:
             d = self.hitboxes[name]
 
-        if d and frame in d:
-            output = []
+        output = []
 
+        if d and frame in d:
             for hitbox in d[frame]:
-                entry = {"name": hitbox["name"]}
+                entry = {}
+
+                for key in hitbox:
+                    entry[key] = hitbox[key]
+
+                entry["animation"] = name
 
                 if "size" in hitbox:
                     w, h = hitbox["size"]
@@ -216,7 +221,10 @@ class AnimationMachine(StateMachine):
 
                 output.append(entry)
 
-            return output
+            if key:
+                output = [o for o in output if key in o]
+
+        return output
 
     def get_animation(self, state=None):
         if not state:

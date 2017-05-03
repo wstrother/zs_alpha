@@ -10,7 +10,7 @@ from sprites.animation_sprite import AnimationSprite
 from sprites.gui import OptionBlockSprite, ContainerSprite, HudBoxSprite, VectorSprite
 from sprites.menus import CursorMenu, ControllerMenu, EnvironmentMenu, PauseMenu
 from geometry import Vector, Wall
-from physics import CollisionLayer
+from collisions import CollisionLayer
 
 
 class Environment(Layer):
