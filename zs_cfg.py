@@ -144,7 +144,8 @@ def get_item(text):
         if line[0] == "\t":
             line = line[1:]
             if ":" not in line:
-                item[line] = True
+                key = string_to_number(line)
+                item[key] = True
 
             else:
                 key, value = line.split(": ")

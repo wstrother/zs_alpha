@@ -891,7 +891,6 @@ class HudBoxSprite(ContainerSprite):
         ]
 
     def set_target(self, target):
-        print("\n\nset_target", target)
         self.target = target
 
     def add_field(self, d):
@@ -916,7 +915,6 @@ class HudBoxSprite(ContainerSprite):
         reporter.set_cache_style(size, *args)
 
         get_value = d["get_value"]
-        print('model link', obj, get_value)
 
         self.model_manager.link_value(
             value_name, obj, get_value
@@ -931,7 +929,6 @@ class HudBoxSprite(ContainerSprite):
         ])
 
     def set_fields(self, *fields):
-        print("\nset_fields")
         for field in fields:
             self.add_field(field)
 

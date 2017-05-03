@@ -92,12 +92,9 @@ class DrawRectLayer(Layer):
         return item.rect
 
     @staticmethod
-    def get_animation_rect(item, rect_name):
-        return item.get_animation_object(rect_name)
+    def get_hitboxes(item, key=False):
+        hitboxes = item.animation_machine.get_hitboxes(key=key)
 
-    @staticmethod
-    def get_hitboxes(item):
-        hitboxes = item.animation_machine.get_hitboxes()
         if not hitboxes:
             return []
 

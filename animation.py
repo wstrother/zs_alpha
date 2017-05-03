@@ -3,8 +3,9 @@ import pygame
 from classes import StateMachine
 from graphics import Graphics, ImageGraphics
 from resources import load_resource
-from zs_cfg import print_dict
 from zs_constants import UDLR
+
+# from zs_cfg import print_dict
 
 
 class AnimationGraphics(Graphics):
@@ -103,7 +104,6 @@ class AnimationGraphics(Graphics):
 
     @staticmethod
     def make_image_set(sprite_sheet, animation, scale=1):
-        print(animation)
         mirror = animation.get("mirror", False)
         cell_size = animation["size"]
         start = animation["start_index"]
@@ -132,8 +132,6 @@ class AnimationGraphics(Graphics):
             # PYGAME CHOKE POINT
 
             r = pygame.Rect(position, (w, h))
-            print(r)
-            print(sprite_sheet)
             cell = sprite_sheet.subsurface(r)
             images += [cell]
 
@@ -148,83 +146,61 @@ class AnimationMachine(StateMachine):
         self.state_frame = -1
         self.animations = {}
         self.hitboxes = {}
+        self.hitbox_tables = {}
         self.last_state = None
 
-    def get_hitboxes_from_cfg(self, cfg):
-        hitboxes = cfg["hitboxes"]
-        for name in hitboxes:
-            hitboxes[name]["name"] = name
+    def set_hitboxes(self, cfg):
+        if "hitboxes" in cfg:
+            self.hitboxes = cfg["hitboxes"]
 
-        new = {}
-        for animation in self.animations:
-            names = [
-                k for k in hitboxes if animation in k           # direction variations on name
-            ]
-
-            for name in names:
-                new_entry = {}
-                entry = hitboxes[name]                          # specific directional animation dict
-
-                for key in entry:
-                    value = entry[key]
-
-                    if type(value) is list:
-                        new_value = []
-                        value = [hitboxes[k] for k in value]
-
-                        new_entry[key] = value                  # final hitbox_dict only has keys for frames
-
-                new[name] = new_entry                           # that have hitboxes
-
-        return new
+        if "hitbox_tables" in cfg:
+            self.hitbox_tables = cfg["hitbox_tables"]
 
     def get_hitboxes(self, key=False):
-        frame = self.get_animation_frame()
         name = self.get_animation_state()
         scale = self.entity.graphics.scale
         px, py = self.entity.rect.topleft
 
-        d = False
+        table = self.hitbox_tables
+        hitboxes = self.hitboxes
 
-        if name in self.hitboxes:
-            d = self.hitboxes[name]
+        ani = self.get_animation()
 
-        output = []
+        h_list = []
+        h_list += ani.get("hitboxes", [])
 
-        if d and frame in d:
-            for hitbox in d[frame]:
-                entry = {}
+        if name in table:
+            frame = table[name][
+                self.get_animation_frame()]
 
-                for key in hitbox:
-                    entry[key] = hitbox[key]
+            if type(frame) is list:
+                h_list += frame
 
-                entry["animation"] = name
+        h_list = [hitboxes[n].copy() for n in h_list]
 
-                if "size" in hitbox:
-                    w, h = hitbox["size"]
-                    w *= scale
-                    h *= scale
+        if key:
+            h_list = [hb for hb in h_list if key in hb]
 
-                    entry["size"] = w, h
+        for hb in h_list:
+            hb["animation"] = name
 
-                if "radius" in hitbox:
-                    entry["radius"] = hitbox["radius"] * scale
+            if "size" in hb:
+                w, h = hb["size"]
+                w *= scale
+                h *= scale
+                hb["size"] = w, h
 
-                if "position" in hitbox:
-                    x, y = hitbox["position"]
-                    x *= scale
-                    x += px
-                    y *= scale
-                    y += py
+            if "radius" in hb:
+                hb["radius"] *= scale
 
-                    entry["position"] = x, y
+            x, y = hb["position"]
+            x *= scale
+            x += px
+            y *= scale
+            y += py
+            hb["position"] = x, y
 
-                output.append(entry)
-
-            if key:
-                output = [o for o in output if key in o]
-
-        return output
+        return h_list
 
     def get_animation(self, state=None):
         if not state:
@@ -279,10 +255,11 @@ class AnimationMachine(StateMachine):
         self.animations = self.get_animations_from_cfg(cfg)
 
         if "hitboxes" in cfg:
-            self.hitboxes = self.get_hitboxes_from_cfg(cfg)
+            self.set_hitboxes(cfg)
 
     def get_animations_from_cfg(self, cfg):
         animations = {}
+
         for name in cfg["animations"]:
             d = {}
             entry = cfg["animations"][name]

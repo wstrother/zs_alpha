@@ -53,7 +53,11 @@ class AnimationSprite(Sprite):
         return self.physics_interface.last_position
 
     def get_collision_rect(self):
-        rect = self.get_animation_object("body")
+        hitbox = self.animation_machine.get_hitboxes("body")
+        hitbox = hitbox[0]
+
+        rect = Rect(hitbox["size"], hitbox["position"])
+
         last = self.physics_interface.get_instantaneous_velocity()
         last.rotate(.5)
         rect.center = last.apply_to_point(rect.center)
@@ -75,25 +79,11 @@ class AnimationSprite(Sprite):
     def get_animation_state(self):
         return self.animation_machine.get_animation_state()
 
-    def get_animation_object(self, key):
+    def get_animation_value(self, key, state=None):
         if self.animation_machine:
-            a = self.animation_machine.get_animation()
-            scale = self.graphics.scale
 
-            ox, oy, w, h = a[key]
-            ox *= scale
-            oy *= scale
-            w *= scale
-            h *= scale
-
-            x, y = self.rect.topleft
-            x += ox
-            y += oy
-
-            return Rect((w, h), (x, y))
-
-        else:
-            return self.rect
+            return self.animation_machine.get_animation(
+                state=state)[key]
 
     def set_base_speed(self, value):
         self.base_speed = value
@@ -299,9 +289,9 @@ class HitboxManager:
         return collisions
 
     def handle_hitboxes(self, hitboxes):
-        print("\n---")
-        for h in hitboxes:
-            print(h)
+        # print("\n---")
+        # for h in hitboxes:
+            # print(h)
 
         self.entity.animation_machine.set_state("hurt")
 
