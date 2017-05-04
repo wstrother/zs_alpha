@@ -26,9 +26,15 @@ class PauseMenu(OptionBlockSprite):
         self.add_option_response(frame_advance, "on_frame_advance")
         self.add_option_response(frame_advance, "on_unpause")
 
+        edit_layers = self.get_sprite_from_value("Edit Layers")
+        edit_layers.selectable = True
+
+        self.add_option_response(edit_layers, "on_edit_layers")
+
         self.set_members([
             [resume_option],
-            [frame_advance]
+            [frame_advance],
+            [edit_layers]
         ])
 
     def on_spawn(self):
@@ -48,56 +54,54 @@ class PauseMenu(OptionBlockSprite):
         for item in group:
             item.kill()
 
+    def on_edit_layers(self):
+        block = EditLayersMenu("Edit Layers Menu")
+        block.set_model(self.model)
 
-class CursorMenu(OptionBlockSprite):
-    def set_menu(self, cursor_sprite):
-        # MOVE CURSOR
+        x, y = self.position
+        x += self.rect.width
 
-        move_cursor = self.get_sprite_from_value("Move Cursor")
-        move_cursor.selectable = True
+        block.set_position(x, y)
 
-        self.add_option_response(
-            move_cursor, {
-                "name": "on_move_cursor",
-                "cursor": cursor_sprite
-            })
-
-        # EDIT CURSOR POSITION
-
-        edit_cursor = self.get_sprite_from_value("Edit Cursor Position")
-        edit_cursor.selectable = True
-
-        self.add_option_response(
-            edit_cursor, "on_edit_cursor")
-
-        self.set_members([
-            [move_cursor],
-            [edit_cursor]
-        ])
-
-    def on_move_cursor(self):
-        cursor_sprite = self.event["cursor"]
-        x, y = cursor_sprite.get_position()
-        y -= 100
-
-        on_move_cursor = {
-            "name": "on_give_control",
-            "sprite": cursor_sprite,
-            "controller_interface": ["movement"],
-            "position": [x, y]
+        change = {
+            "name": "on_change_block",
+            "block": block,
         }
-        self.handle_event(on_move_cursor)
+        self.queue_events(change)
 
-        on_move_cursor_dialog = {
-            "name": "on_show_dialog",
-            "dialog": "cursor_dialog",
-            "body": "Move Cursor with Dpad \nPress return when done",
-            "on_death": {
-                "name": "on_freeze_control",
-                "target": cursor_sprite
+
+class EditLayersMenu(OptionBlockSprite):
+    def set_menu(self):
+        env = self.model["environment"]
+
+        self.set_member_table(env.get_layers())
+
+    def on_spawn(self):
+        super(EditLayersMenu, self).on_spawn()
+
+        self.set_menu()
+
+        for option in self.options:
+            toggle_visible = {
+                "name": "on_toggle_layer",
+                "layer": option.get_value()
             }
-        }
-        self.handle_event(on_move_cursor_dialog)
+            self.add_option_response(
+                option, toggle_visible
+            )
+
+    def on_toggle_layer(self):
+        layer = self.event["layer"]
+
+        layer.visible = not layer.visible
+
+    @staticmethod
+    def get_sprite_from_value(value):
+        layer = value
+        option = OptionBlockSprite.get_sprite_from_value(layer.name)
+        option.set_value(layer)
+
+        return option
 
 
 class ControllerMenu(OptionBlockSprite):

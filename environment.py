@@ -8,7 +8,7 @@ from layers.utils import DrawRectLayer, PauseMenuLayer, DrawVectorLayer
 from resources import load_resource
 from sprites.animation_sprite import AnimationSprite
 from sprites.gui import OptionBlockSprite, ContainerSprite, HudBoxSprite, VectorSprite
-from sprites.menus import CursorMenu, ControllerMenu, EnvironmentMenu, PauseMenu
+from sprites.menus import ControllerMenu, EnvironmentMenu, PauseMenu
 from geometry import Vector, Wall
 from collisions import CollisionLayer
 
@@ -32,7 +32,6 @@ class Environment(Layer):
         "collision_layer": CollisionLayer,
         # SPRITES
         "pause_menu": PauseMenu,
-        "cursor_menu": CursorMenu,
         "controller_menu": ControllerMenu,
         "environment_menu": EnvironmentMenu,
         "option_block_sprite": OptionBlockSprite,
@@ -76,6 +75,17 @@ class Environment(Layer):
                 groups.append(item)
 
         return groups
+
+    def get_layers(self):
+        layers = []
+
+        for name in self.model:
+            item = self.model[name]
+
+            if isinstance(item, Layer):
+                layers.append(item)
+
+        return layers
 
     def on_spawn(self):
         populate(

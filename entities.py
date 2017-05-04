@@ -510,12 +510,14 @@ class ControllerInterface:
 
     def handle_event(self, device_names=(), event=None):
         sprite = self.entity
-        test = self.check_buttons(*device_names)
 
-        if test:
-            sprite.queue_events(event)
+        if sprite.controller:
+            test = self.check_buttons(*device_names)
 
-        return test
+            if test:
+                sprite.queue_events(event)
+
+            return test
 
     def check_buttons(self, *device_names):
         sprite = self.entity
@@ -533,17 +535,18 @@ class ControllerInterface:
 
     def move_pointer(self, device_name=""):
         sprite = self.entity
-        dpad = sprite.controller.get_device(
-            device_name)
+        if sprite.controller:
+            dpad = sprite.controller.get_device(
+                device_name)
 
-        x, y = dpad.get_direction()
+            x, y = dpad.get_direction()
 
-        test = (x or y) and dpad.check()
+            test = (x or y) and dpad.check()
 
-        if test:
-            sprite.move_pointer(x, y)
+            if test:
+                sprite.move_pointer(x, y)
 
-        return test
+            return test
 
     def play_sound(self, device_names=(), file_name="", key=""):
         sprite = self.entity
@@ -669,6 +672,9 @@ class Region(Sprite):
 
     def set_walls(self, *walls):
         for w in walls:
+            if type(w) is str:
+                w = load_resource("walls")[w]
+
             wall = Wall(w["name"], w["origin"], w["end"])
             wall.log = self.log
 

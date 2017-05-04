@@ -598,7 +598,7 @@ class OptionBlockSprite(ContainerSprite):
         rc_event = self.event.get(
             "return_control", "on_return")
         death_events = self.event.get(
-            "death", False)
+            "death", "on_return")
 
         # pass controller
         block.set_controller(
@@ -710,92 +710,6 @@ class OptionBlockSprite(ContainerSprite):
 
         return members
 
-    # def get_members_from_devices(self, d, file_name):
-    #     name = file_name[:-4].replace("_", " ").capitalize()
-    #
-    #     members = self.get_members_from_dict(
-    #         d, header=name)
-    #
-    #     i = 0
-    #     for row in members:
-
-    # def set_menu(self, d, *pargs):
-    #     if type(d) is str:
-    #         d = MENUS[d]
-    #
-    #     def get_method(entry):
-    #         if type(entry) is str:
-    #             entry = [entry]
-    #
-    #         method_name = entry[0]
-    #         m = getattr(MenuTools, method_name, False)
-    #
-    #         if not m:
-    #             raise AttributeError("MenuTools.{} method not found".format(method_name))
-    #
-    #         args = []
-    #         if len(entry) > 1:
-    #             for arg in entry[1:]:
-    #                 if "*" in arg:
-    #                     j = int(arg.split()[0][1:])
-    #                     arg = pargs[j]
-    #                 args.append(arg)
-    #
-    #         return m, args
-    #
-    #     def do_method(entry):
-    #         m, args = get_method(entry)
-    #
-    #         return m(*args)
-    #
-    #     # GET OPTION VALUES
-    #
-    #     if "get_options" in d:
-    #         self.set_member_table(
-    #             do_method(d["get_options"])
-    #         )
-    #
-    #     elif "options" in d:
-    #         self.set_member_table(
-    #             d["options"]
-    #         )
-    #
-    #     if "option_values" in d:
-    #         i = 0
-    #
-    #         for value in d["option_values"]:
-    #             self.options[i].set_value(value)
-    #             i += 1
-    #
-    #     # GET OPTION EVENTS
-    #
-    #     for option in self.options:
-    #         get_event = get_method(d["get_events"])[0]
-    #
-    #         self.add_option_response(
-    #             option, get_event(option)
-    #         )
-    #
-    #         if "get_text" in d:
-    #             get_text = get_method(d["get_text"])[0]
-    #             text = option.get_text()
-    #
-    #             option.set_text(
-    #                 get_text(text)
-    #             )
-    #
-    #     # GET HEADER
-    #
-    #     if "get_header" in d:
-    #         get_header = d["get_header"]
-    #
-    #         if type(get_header) is list:
-    #             header = do_method(get_header)
-    #         else:
-    #             header = get_header
-    #
-    #         self.set_header(header)
-
     def set_options(self, *args):
         for arg in args:
             if type(arg) is str:
@@ -894,6 +808,9 @@ class HudBoxSprite(ContainerSprite):
         self.target = target
 
     def add_field(self, d):
+        if type(d) is str:
+            d = load_resource("hud_fields")[d]
+
         value_name = d["value_name"]
         obj = self.target
         reporter = HudFieldSprite(value_name)
@@ -935,6 +852,11 @@ class HudBoxSprite(ContainerSprite):
     def update(self):
         super(HudBoxSprite, self).update()
         self.model_manager.update()
+
+    def on_spawn(self):
+        super(HudBoxSprite, self).on_spawn()
+
+        self.set_style("seethru_bg_style")
 
     @staticmethod
     def format_point(point):

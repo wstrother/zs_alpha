@@ -1,6 +1,7 @@
 from entities import Layer
 from physics import PhysicsInterface
 from sprites.animation_sprite import HitboxManager
+from resources import load_resource
 
 
 class CollisionManager:
@@ -87,6 +88,9 @@ class CollisionLayer(Layer):
 
     def set_collisions(self, *systems):
         for s in systems:
+            if type(s) is str:
+                s = load_resource("collision_systems")[s]
+
             s = s.copy()
             s["group_a"] = self.model[s["group_a"]]
 

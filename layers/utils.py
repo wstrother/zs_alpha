@@ -184,6 +184,7 @@ class PauseMenuLayer(Layer):
         pm = PauseMenu("Pause Menu")
         self.pause_menu = pm
 
+        pm.set_model(self.model)
         pm.set_controller(self.controller.name)
         pm.set_event_passers(self, "on_exit", "on_frame_advance")
 

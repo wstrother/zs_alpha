@@ -3,6 +3,7 @@ from animation import AnimationGraphics, AnimationMachine, UdlrAnimationMachine
 from zs_constants import UDLR, UDLR_VALUE
 from geometry import Rect, Wall
 from physics import PhysicsInterface
+from resources import load_resource
 
 from math import sqrt
 
@@ -95,6 +96,9 @@ class AnimationSprite(Sprite):
         self.direction_table = table
 
     def set_animation(self, d):
+        if type(d) is str:
+            d = load_resource("animation_machines")[d]
+
         transition_file = d["state_transitions"]
 
         sprite_sheet = d["sprite_sheet"]
@@ -257,7 +261,7 @@ class HitboxManager:
         self.entity = entity
 
     def get_hitbox_collisions(self, other):
-        hitboxes = self.entity.animation_machine.get_hitboxes()
+        hitboxes = self.entity.animation_machine.get_hitboxes(key="damage")
         hurtboxes = other.animation_machine.get_hitboxes(key="hurtbox")
         rects = [other.get_collision_rect()] + hurtboxes
 
