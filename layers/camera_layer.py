@@ -12,8 +12,31 @@ class CameraLayer(Layer):
 
         super(CameraLayer, self).__init__(name)
 
-        self.get_focus = None
         self.target_name = None
+
+        self.track_function = None
+        self.scale_function = None
+
+    def get_screen_px(self, world_px):
+        wx, wy = world_px
+
+        wx /= self.scale
+        wy /= self.scale
+
+        x, y = self.view_rect.topleft
+
+        return wx - x, wy - y
+
+    def get_world_px(self, screen_px):
+        sx, sy = screen_px
+        sx *= self.scale
+        sy *= self.scale
+
+        x, y = self.view_rect.topleft
+        sx += x
+        sy += y
+
+        return sx, sy
 
     def get_scale(self):
         return self.scale
@@ -27,11 +50,15 @@ class CameraLayer(Layer):
         self.set_view_rect_size()
 
     def set_view_rect_size(self):
+        rect = self.view_rect
+        cx, cy = rect.center
         w, h = self.size
 
         w /= self.scale
         h /= self.scale
-        self.view_rect.size = w, h
+
+        rect.size = w, h
+        rect.center = cx, cy
 
     def set_view_position(self, x, y):
         self.view_rect.position = x, y
@@ -40,7 +67,11 @@ class CameraLayer(Layer):
         self.view_rect.center = fx, fy
 
     def set_tracking_function(self, obj, method_name):
-        self.get_focus = getattr(obj, method_name)
+        self.track_function = getattr(obj, method_name)
+
+    def set_scale_function(self, obj, method_name, *args):
+        m = getattr(obj, method_name)
+        self.scale_function = lambda: m(*args)
 
     def set_target(self, name):
         self.target_name = name
@@ -61,15 +92,12 @@ class CameraLayer(Layer):
 
         return pygame.Surface((w, h)).convert()
 
-    def get_camera_offset(self, offset):
+    def get_camera_offset(self, offset=(0, 0)):
         ox, oy = offset
         vx, vy = self.view_rect.topleft
 
         ox -= vx
         oy -= vy
-
-        ox *= self.scale
-        oy *= self.scale
 
         return ox, oy
 
@@ -113,12 +141,19 @@ class CameraLayer(Layer):
     def update(self):
         super(CameraLayer, self).update()
 
-        if self.get_focus:
-            fx, fy = self.get_focus()
+        if self.track_function:
+            fx, fy = self.track_function()
 
             self.set_focus(fx, fy)
+
+        if self.scale_function:
+            self.set_scale(self.scale_function())
 
     def on_spawn(self):
         if self.target_name:
             obj = self.model[self.target_name]
+
             self.set_tracking_function(obj, "get_position")
+
+            if "camera_scale" in obj.meters:
+                self.set_scale_function(obj, "get_meter_value", "camera_scale")

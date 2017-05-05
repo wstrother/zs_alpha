@@ -1,7 +1,8 @@
 from entities import Layer
 from graphics import RectGraphics, VectorGraphics
 from sprites.menus import PauseMenu
-from geometry import Vector, Rect, Wall
+from sprites.gui import VectorSprite
+from geometry import Rect, Wall
 from classes import Group
 
 
@@ -75,6 +76,13 @@ class DrawRectLayer(Layer):
                             "class": "vector",
                             "vector": rect,
                             "position": rect.origin
+                        }
+
+                    elif isinstance(rect, VectorSprite):
+                        d = {
+                            "class": "vector",
+                            "vector": rect.vector,
+                            "position": rect.vector_origin
                         }
 
                     else:

@@ -889,6 +889,13 @@ class HudBoxSprite(ContainerSprite):
     def format_vector(vector):
         return HudBoxSprite.format_point(vector.get_value())
 
+    @staticmethod
+    def format_rect(rect):
+        fp = HudBoxSprite.format_point
+        return "size: {}\nposition: {}".format(
+            fp(rect.size), fp(rect.position)
+        )
+
 
 class HudFieldSprite(Sprite):
     def __init__(self, name):

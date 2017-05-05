@@ -295,10 +295,8 @@ class ContainerGraphics(Graphics):
         super(ContainerGraphics, self).__init__(entity)
 
     def make_image(self, bg_color=False):
-        print("\n\n------------\n\tCALLING MAKE IMAGE")
         entity = self.entity
         size = entity.rect.size
-        print("\t\t", size)
 
         if entity.style:
             style = entity.style

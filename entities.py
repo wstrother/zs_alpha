@@ -455,7 +455,7 @@ class ControllerInterface:
         methods = load_resource("control_methods")
 
         for name in method_names:
-            self.add_method(name, methods[name])
+            self.add_method(name, methods[name].copy())
 
     def add_method(self, name, d):
         if "method" in d:
@@ -464,6 +464,10 @@ class ControllerInterface:
             method_name = name
 
         m = getattr(self, method_name)
+
+        if "chain" in d:
+            chain = d.pop("chain")
+            self.set_methods(*chain)
 
         self.control_methods[name] = m, d
 
@@ -479,6 +483,10 @@ class ControllerInterface:
 
                     # if test:
                     #     print(self, name)
+
+    def unpause_method(self, name):
+        if name in self.paused:
+            self.paused = [p for p in self.paused if p != name]
 
     #
     # CONTROL METHODS
@@ -546,7 +554,27 @@ class ControllerInterface:
 
             return test
 
-    def adjust_meter(self, device_name="", meter_name="", vertical=False):
+    def hold_button_mod(self, mod_name="", on_hold="", **d):
+        sprite = self.entity
+        if sprite.controller:
+            button = sprite.controller.get_device(mod_name)
+            if button.held:
+                m = getattr(self, on_hold)
+                m(**d)
+
+    def hold_button_cancel(self, mod_name="", on_hold=""):
+        sprite = self.entity
+        if sprite.controller:
+            button = sprite.controller.get_device(mod_name)
+            if button.held:
+                if on_hold not in self.paused:
+                    self.paused.append(on_hold)
+
+            else:
+                if on_hold in self.paused:
+                    self.unpause_method(on_hold)
+
+    def adjust_meter(self, device_name="", meter_name="", speed=0, vertical=False):
         sprite = self.entity
 
         if sprite.controller:
@@ -559,7 +587,7 @@ class ControllerInterface:
             else:
                 change = y
 
-            sprite.meters[meter_name].value += change
+            sprite.meters[meter_name].value += change * speed
 
     def check_buttons(self, *device_names):
         sprite = self.entity

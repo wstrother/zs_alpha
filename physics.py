@@ -124,6 +124,7 @@ class PhysicsInterface:
         if not n.check_orientation(v):
             skeleton = sprite.get_collision_skeleton()
             angle = n.get_angle() + .5
+            angle -= angle // 1
 
             r = (0 <= angle < .125) or (.875 <= angle <= 1)
             t = .125 <= angle < .375
