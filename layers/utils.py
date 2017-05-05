@@ -1,8 +1,7 @@
-from entities import Layer, ModelManager
+from entities import Layer
 from graphics import RectGraphics, VectorGraphics
 from sprites.menus import PauseMenu
-from sprites.gui import HudFieldSprite, ContainerSprite
-from geometry import Vector
+from geometry import Vector, Rect, Wall
 from classes import Group
 
 
@@ -12,8 +11,10 @@ class DrawRectLayer(Layer):
 
         self.draw_width = 2
         self.draw_color = 0, 255, 0
-        self.get_rect_function = self.get_item_rect
+
+        self.get_rect_function = None
         self.rect_args = []
+        self.get_items = self.get_items_from_groups
 
     def update_items(self):
         pass
@@ -33,67 +34,108 @@ class DrawRectLayer(Layer):
         self.get_rect_function = getattr(self, method_name)
         self.rect_args = args
 
-    def draw_items(self, canvas):
+    def set_items_function(self, obj, method_name):
+        self.get_items = getattr(obj, method_name)
+
+    def get_items_from_groups(self):
+        items = []
+
+        for g in self.groups:
+            items += [i for i in g]
+
+        return items
+
+    def draw_items(self, canvas, offset=(0, 0)):
         color = self.draw_color
         width = self.draw_width
 
-        for g in self.groups:
-            for item in g:
-                args = self.rect_args
+        for item in self.get_items():
+            args = self.rect_args
+
+            if self.get_rect_function:
                 r = self.get_rect_function(item, *args)
 
-                if not type(r) is list:
-                    r = [r]
+            else:
+                r = item
 
-                for rect in r:
-                    if type(rect) is dict:
-                        if "radius" in rect:
-                            self.draw_circle(
-                                canvas, rect["radius"],
-                                rect["position"],
-                                color, width)
-                        else:
-                            size = rect["size"]
-                            position = rect["position"]
+            if not type(r) is list:
+                r = [r]
 
-                            self.draw_rect(
-                                canvas, size,
-                                position,
-                                color, width)
+            for rect in r:
+                if type(rect) is not dict:
+                    if isinstance(rect, Rect):
+                        d = {
+                            "class": "rect",
+                            "size": rect.size,
+                            "position": rect.position
+                        }
+
+                    elif isinstance(rect, Wall):
+                        d = {
+                            "class": "vector",
+                            "vector": rect,
+                            "position": rect.origin
+                        }
 
                     else:
-                        self.draw_rect(
-                            canvas, rect.size,
-                            rect.position,
-                            color, width)
+                        raise ValueError("bad value type passed {}: \n\t{}".format(
+                            str(type(rect)), rect))
+                else:
+                    d = rect.copy()
+                    if "radius" in d:
+                        d["class"] = "circle"
+
+                    if "size" in d:
+                        d["class"] = "rect"
+
+                d["draw_color"] = color
+                d["draw_width"] = width
+                self.draw_object_from_dict(canvas, d, offset)
 
     @staticmethod
-    def draw_rect(canvas, size, position, color, width):
-        image = RectGraphics.get_rect_image(
-            size, color, width)
+    def draw_object_from_dict(canvas, d, offset=(0, 0)):
+        color = d["draw_color"]
+        width = d["draw_width"]
+        x, y = d["position"]
+        x += offset[0]
+        y += offset[1]
 
-        canvas.blit(image, position)
+        if d["class"] == "vector":
+            image = VectorGraphics.get_vector_image(
+                            d["vector"], color, width)
+            x, y = d["vector"].get_draw_point((x, y), width)
 
-    @staticmethod
-    def draw_circle(canvas, radius, position, color, width):
-        image = RectGraphics.get_circle_image(
-            radius, color, width)
-        w, h = image.get_size()
-        w /= 2
-        h /= 2
-        px, py = position
-        px -= w
-        py -= h
+        elif d["class"] == "rect":
+            image = RectGraphics.get_rect_image(
+                d["size"], color, width)
 
-        canvas.blit(image, (px, py))
+        elif d["class"] == "circle":
+            image = RectGraphics.get_circle_image(
+                d["radius"], color, width)
+
+            w, h = image.get_size()
+            x -= w/2
+            y -= h/2
+
+        else:
+            raise ValueError("bad dict passed")
+
+        # PYGAME CHOKE POINT
+        canvas.blit(image, (x, y))
 
     @staticmethod
     def get_item_rect(item):
         return item.rect
 
     @staticmethod
-    def get_hitboxes(item, key=False):
-        hitboxes = item.animation_machine.get_hitboxes(key=key)
+    def get_hitboxes(item, *keys):
+        if not keys:
+            hitboxes = item.animation_machine.get_hitboxes()
+        else:
+            hitboxes = []
+
+            for key in keys:
+                hitboxes += item.animation_machine.get_hitboxes(key=key)
 
         if not hitboxes:
             return []
@@ -106,63 +148,23 @@ class DrawVectorLayer(DrawRectLayer):
     def __init__(self, name):
         super(DrawVectorLayer, self).__init__(name)
 
-        self.get_vector_function = None
-        self.vector_args = []
+        self.vector_scale = 1
 
-    def set_vector_function(self, *args):
-        method_name = args[0]
-        if len(args) > 1:
-            args = args[1:]
-        else:
-            args = []
-
-        self.get_vector_function = getattr(self, method_name)
-        self.vector_args = args
-
-    def draw_items(self, canvas):
-        color = self.draw_color
-        width = self.draw_width
-        get_vectors = self.get_vector_function
-
-        if get_vectors:
-            for g in self.groups:
-
-                for item in g:
-                    v = get_vectors(item)
-
-                    if not type(v) is list:
-                        v = [v]
-
-                    for vector, point in v:
-                        image = VectorGraphics.get_vector_image(
-                            vector, color, width)
-
-                        canvas.blit(image, point)
+    def set_vector_scale(self, value):
+        self.vector_scale = value
 
     def get_item_velocity(self, item):
-        v = item.get_velocity().get_copy(scale=1)
+        v = item.get_velocity().get_copy(scale=self.vector_scale)
 
-        return v, v.get_draw_point(
-            item.position, self.draw_width)
+        return {
+            "class": "vector",
+            "vector": v,
+            "position": item.get_collision_point()
+        }
 
-    def get_position_vector(self, item, origin=(0, 0)):
-        ox, oy = origin
-        px, py = item.position
-        dx = px - ox
-        dy = py - oy
-        v = Vector("{} position".format(item.name),
-                   dx, dy)
-
-        return v, v.get_draw_point(origin, self.draw_width)
-
-    def get_region_walls(self, item):
-        walls = []
-        for w in item.walls:
-            point = w.get_draw_point(
-                w.origin, self.draw_width)
-            walls.append((w, point))
-
-        return walls
+    @staticmethod
+    def get_region_walls(item):
+        return item.walls
 
 
 class PauseMenuLayer(Layer):

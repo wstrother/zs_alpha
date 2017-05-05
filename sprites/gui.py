@@ -13,6 +13,7 @@ TABLES = load_resource("tables")
 DIALOG_TABLE = TABLES["dialog"]
 
 HUD_FREQUENCY = 12
+PRECISION = 3
 
 
 class GuiMemberTable(MemberTable):
@@ -831,7 +832,7 @@ class HudBoxSprite(ContainerSprite):
 
         reporter.set_cache_style(size, *args)
 
-        get_value = d["get_value"]
+        get_value = d.get("get_value", None)
 
         self.model_manager.link_value(
             value_name, obj, get_value
@@ -859,8 +860,30 @@ class HudBoxSprite(ContainerSprite):
         self.set_style("seethru_bg_style")
 
     @staticmethod
+    def format_float(*numbers):
+        f_str = "{:4." + str(PRECISION) + "f}"
+
+        def format_number(num):
+            num = round(num, PRECISION + 1)
+
+            if int(num) == num:
+                return str(int(num))
+
+            else:
+                return f_str.format(num)
+
+        if len(numbers) == 1:
+            return format_number(numbers[0])
+
+        else:
+            return "({})".format(
+                ", ".join(
+                    [format_number(n) for n in numbers])
+            )
+
+    @staticmethod
     def format_point(point):
-        return "{:5.2f}, {:5.2f}".format(*point)
+        return HudBoxSprite.format_float(*point)
 
     @staticmethod
     def format_vector(vector):
@@ -896,11 +919,7 @@ class HudFieldSprite(Sprite):
         self.text_function = function
 
     def set_cache(self, item):
-        get_text = self.text_function
-        if not get_text:
-            get_text = str
-
-        self.cache.append(get_text(item))
+        self.cache.append(item)
 
     def get_cache_text(self):
         cache = self.cache
@@ -908,16 +927,22 @@ class HudFieldSprite(Sprite):
         cls = args[0]
         text = ""
 
+        if self.text_function:
+            text_func = self.text_function
+
+        else:
+            text_func = str
+
         if cls == "cache":
-            text = "\n".join([item for item in cache])
+            text = "\n".join([text_func(item) for item in cache])
 
         if cls == "average":
-            text = str(cache.average())
+            text = text_func(cache.average())
 
         if cls == "change":
             maximum = args[1]
             text = "\n".join(
-                [str(item) for item in cache.changes(maximum)]
+                [text_func(item) for item in cache.changes(maximum)]
             )
 
         return text

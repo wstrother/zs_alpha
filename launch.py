@@ -43,9 +43,9 @@ class Game:
 
     def main_routine(self, clock=None):
         # print("\n\n======================")
-
         if clock:                           # dt value can be printed to stdout or passed to data model
             dt = clock.tick(self.frame_rate) / 1000
+            self.environment.model["dt"] = dt
             # print(dt)
 
         self.screen.fill((0, 0, 0))        # screen is set to black and passed to environment's main method

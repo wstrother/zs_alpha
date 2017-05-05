@@ -53,9 +53,12 @@ class Rect:
     def clip(self):
         return self.pygame_rect.clip
 
-    @property
     def copy(self):
-        return self.pygame_rect.copy
+        return self.get_from_pygame_rect(self.pygame_rect.copy())
+
+    @staticmethod
+    def get_from_pygame_rect(rect):
+        return Rect(rect.size, rect.topleft)
 
     @property
     def width(self):

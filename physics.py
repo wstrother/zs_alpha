@@ -90,7 +90,7 @@ class PhysicsInterface:
         self.apply_velocity()
 
     @staticmethod
-    def test_wall_collision(wall, sprite):
+    def wall_velocity_test(wall, sprite):
         n = wall.get_normal()
         n.rotate(.5)
 
@@ -98,15 +98,33 @@ class PhysicsInterface:
         v = sprite.get_velocity()
 
         if n.check_orientation(v):
-
             for point in points:
                 collision = wall.vector_collision(v, point)
 
                 if collision:
                     return point
 
+    @staticmethod
+    def test_wall_collision(wall, sprite):
+        v_test = PhysicsInterface.wall_velocity_test(wall, sprite)
+
+        if v_test:
+            return v_test
+
+        else:
+            s_test = PhysicsInterface.wall_skeleton_test(wall, sprite)
+
+            return s_test
+
+    @staticmethod
+    def wall_skeleton_test(wall, sprite):
+        v = sprite.get_velocity()
+        n = wall.get_normal()
+
+        if not n.check_orientation(v):
             skeleton = sprite.get_collision_skeleton()
-            angle = n.get_angle()
+            angle = n.get_angle() + .5
+
             r = (0 <= angle < .125) or (.875 <= angle <= 1)
             t = .125 <= angle < .375
             l = .375 <= angle < .675

@@ -26,16 +26,20 @@ class PauseMenu(OptionBlockSprite):
         self.add_option_response(frame_advance, "on_frame_advance")
         self.add_option_response(frame_advance, "on_unpause")
 
-        edit_layers = self.get_sprite_from_value("Edit Layers")
-        edit_layers.selectable = True
-
-        self.add_option_response(edit_layers, "on_edit_layers")
-
-        self.set_members([
+        members = [
             [resume_option],
-            [frame_advance],
-            [edit_layers]
-        ])
+            [frame_advance]
+        ]
+
+        if "environment" in self.model:
+            edit_layers = self.get_sprite_from_value("Edit Layers")
+            edit_layers.selectable = True
+
+            self.add_option_response(edit_layers, "on_edit_layers")
+
+            members += [[edit_layers]]
+
+        self.set_members(members)
 
     def on_spawn(self):
         super(PauseMenu, self).on_spawn()
@@ -71,6 +75,11 @@ class PauseMenu(OptionBlockSprite):
 
 
 class EditLayersMenu(OptionBlockSprite):
+    def __init__(self, name):
+        super(EditLayersMenu, self).__init__(name)
+
+        self.activate_buttons = ("A",)
+
     def set_menu(self):
         env = self.model["environment"]
 

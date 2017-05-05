@@ -3,8 +3,9 @@ from sys import exit
 from classes import Group
 from context_manager import update_model, add_layers, populate
 from entities import Layer, Sprite, ModelManager, Region
-from graphics import ContainerGraphics, TextGraphics, RectGraphics
+from graphics import ContainerGraphics, TextGraphics, RectGraphics, RemoteLayerGraphics, ImageGraphics
 from layers.utils import DrawRectLayer, PauseMenuLayer, DrawVectorLayer
+from layers.camera_layer import CameraLayer
 from resources import load_resource
 from sprites.animation_sprite import AnimationSprite
 from sprites.gui import OptionBlockSprite, ContainerSprite, HudBoxSprite, VectorSprite
@@ -25,11 +26,14 @@ class Environment(Layer):
         "container_graphics": ContainerGraphics,
         "text_graphics": TextGraphics,
         "rect_graphics": RectGraphics,
+        "remote_layer_graphics": RemoteLayerGraphics,
+        "image_graphics": ImageGraphics,
         # LAYERS
         "draw_rect_layer": DrawRectLayer,
         "pause_menu_layer": PauseMenuLayer,
         "draw_vector_layer": DrawVectorLayer,
         "collision_layer": CollisionLayer,
+        "camera_layer": CameraLayer,
         # SPRITES
         "pause_menu": PauseMenu,
         "controller_menu": ControllerMenu,
@@ -88,10 +92,11 @@ class Environment(Layer):
         return layers
 
     def on_spawn(self):
-        populate(
-            self.CLASS_DICT,
-            self.cfg,
-            self.model)
+        if "populate" in self.cfg:
+            populate(
+                self.CLASS_DICT,
+                self.cfg,
+                self.model)
 
         for g in self.get_groups():
             for item in g:

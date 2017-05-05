@@ -1,4 +1,4 @@
-from classes import Clock, MessageLogger
+from classes import Clock, MessageLogger, Meter
 from controller import load_controller, make_controller
 from events import EventHandler
 from geometry import Rect, Wall
@@ -27,7 +27,9 @@ class Entity:
         self.visible = True
         self._graphics = None
         self._style = {}
+
         self.sounds = {}
+        self.meters = {}
 
         self.event = None
         self.event_handler = EventHandler(self)
@@ -172,6 +174,13 @@ class Entity:
         if self.graphics:
             self.graphics.reset_image()
 
+    def set_meters(self, d):
+        for name in d:
+            self.meters[name] = Meter(name, *d[name])
+
+    def get_meter_value(self, name):
+        return self.meters[name].value
+
     def set_graphics(self, graphics, *args, **kwargs):
         self._graphics = graphics(self, *args, **kwargs)
 
@@ -255,13 +264,16 @@ class Layer(Entity):
         self.update()
         self.draw(screen)
 
+    def get_dt(self):
+        return self.model["dt"]
+
     def set_groups(self, *groups):
         self.groups = groups
 
     def set_parent_layer(self, layer):
         layer.sub_layers.append(self)
 
-    def draw(self, screen):
+    def get_canvas(self, screen):
         # PYGAME CHOKE POINT
 
         sub_rect = self.rect.clip(
@@ -270,28 +282,43 @@ class Layer(Entity):
         try:
             canvas = screen.subsurface(sub_rect)
         except ValueError:      # if the layer's area is entirely outside of the screen's
-            return              # area, it doesn't get drawn
+            return None        # area, it doesn't get drawn
 
-        if self.graphics:
-            canvas.blit(self.graphics.get_image(), (0, 0))
+        return canvas
 
-        self.draw_items(canvas)
-        self.draw_sub_layers(canvas)
+    def draw(self, screen, offset=(0, 0), draw_point=(0, 0)):
+        canvas = self.get_canvas(screen)
 
-    def draw_sub_layers(self, canvas):
-        for layer in self.sub_layers:
-            if layer.visible:
-                layer.draw(canvas)
+        if canvas:
+            if self.graphics and self.visible:
+                canvas.blit(
+                    self.graphics.get_image(), draw_point)
 
-    def draw_items(self, canvas):
-        # Draw sprites / effects
+            self.draw_items(
+                canvas, offset=offset)
+            self.draw_sub_layers(
+                canvas, offset=offset,
+                draw_point=draw_point)
+
+    def draw_sub_layers(self, canvas, offset=(0, 0), draw_point=(0, 0)):
+        if self.visible:
+            for layer in self.sub_layers:
+                if layer.visible:
+                    layer.draw(
+                        canvas, offset=offset,
+                        draw_point=draw_point)
+
+    def draw_items(self, canvas, offset=(0, 0)):
+        ox, oy = offset
 
         for group in self.groups:
             for item in group:
                 if item.graphics and item.image and item.visible:
-                    canvas.blit(
-                        item.image, item.draw_point
-                    )
+                    x, y = item.draw_point
+                    x += ox
+                    y += oy
+
+                    canvas.blit(item.image, (x, y))
 
     def update_sub_layers(self):
         if not self.paused:
@@ -519,6 +546,21 @@ class ControllerInterface:
 
             return test
 
+    def adjust_meter(self, device_name="", meter_name="", vertical=False):
+        sprite = self.entity
+
+        if sprite.controller:
+            dpad = sprite.controller.get_device(device_name)
+            x, y = dpad.get_direction()
+
+            if not vertical:
+                change = x
+
+            else:
+                change = y
+
+            sprite.meters[meter_name].value += change
+
     def check_buttons(self, *device_names):
         sprite = self.entity
         buttons = []
@@ -626,8 +668,11 @@ class ModelManager:
             def get_func():
                 return getattr(obj, get_value)(*args)
         else:
-            def get_func():
-                return get_value(*args)
+            if get_value:
+                def get_func():
+                    return get_value(*args)
+            else:
+                get_func = None
 
         self.add_get_value_func(
             value_name, get_func)

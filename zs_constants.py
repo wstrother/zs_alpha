@@ -1,4 +1,4 @@
-SCREEN_SIZE = 800, 600
+SCREEN_SIZE = 1100, 600
 FRAME_RATE = 60
 START_ENV = "main_menu.cfg"
 START_CONTROLLERS = "default_controller_64.cfg", "default_controller_key.cfg"

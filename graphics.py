@@ -295,8 +295,10 @@ class ContainerGraphics(Graphics):
         super(ContainerGraphics, self).__init__(entity)
 
     def make_image(self, bg_color=False):
+        print("\n\n------------\n\tCALLING MAKE IMAGE")
         entity = self.entity
         size = entity.rect.size
+        print("\t\t", size)
 
         if entity.style:
             style = entity.style
@@ -476,3 +478,19 @@ class ContainerGraphics(Graphics):
 
         return corner
 
+
+class RemoteLayerGraphics(Graphics):
+    def __init__(self, entity, target_layer):
+        self.target = target_layer
+        super(RemoteLayerGraphics, self).__init__(entity)
+
+    def make_image(self):
+        image = pygame.Surface(self.entity.size, pygame.SRCALPHA, 32)
+
+        target = self.target
+        target.draw(image)
+
+        return image
+
+    def update(self):
+        self.reset_image()

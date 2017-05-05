@@ -70,12 +70,11 @@ class AnimationSprite(Sprite):
 
         return [
             rect.midtop, rect.midright,
-            rect.midleft, rect.midbottom,
-            rect.center
+            rect.midleft, rect.midbottom
         ]
 
     def get_collision_point(self):
-        return self.get_collision_points()[0]
+        return self.get_collision_rect().center
 
     def get_animation_state(self):
         return self.animation_machine.get_animation_state()
